@@ -1,0 +1,13 @@
+App(
+    appid="piterm",
+    name="PiTerm",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="piterm_app",
+    sources=["*.c", "!*_test.c"],  # host tests (tests/) are not built into the .fap
+    stack_size=4 * 1024,
+    fap_category="Bluetooth",
+    fap_version="0.1",
+    fap_description="Terminal to a Linux shell (Raspberry Pi) over Bluetooth LE",
+    fap_author="thekamik",
+    fap_icon="piterm_10px.png",
+)
