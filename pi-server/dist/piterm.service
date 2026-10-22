@@ -1,0 +1,14 @@
+[Unit]
+Description=PiTerm BLE terminal server
+After=bluetooth.service
+Requires=bluetooth.service
+
+[Service]
+ExecStart=/usr/local/bin/piterm-server --config /etc/piterm/config.toml
+# User whose shell is exposed on the Flipper (not root).
+User=pi
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

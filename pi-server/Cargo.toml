@@ -1,0 +1,16 @@
+[package]
+name = "piterm-server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.104"
+bluer = { version = "0.17.4", features = ["bluetoothd"] }
+clap = { version = "4.6.7", features = ["derive"] }
+futures = "0.3.34"
+pty-process = { version = "0.5.4", features = ["async"] }
+serde = { version = "1.0.229", features = ["derive"] }
+tokio = { version = "1.54.1", features = ["full"] }
+toml = "1.1.8"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }

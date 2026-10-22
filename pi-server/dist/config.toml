@@ -1,0 +1,19 @@
+# PiTerm configuration (/etc/piterm/config.toml)
+
+# MAC of the Flipper in the PiTerm profile (shown by `piterm-server scan`).
+# The server connects only to this address. Commented out = the only device
+# named "PiTerm ..." paired in the system (pairing the Flipper is enough).
+# flipper_addr = "AA:BB:CC:DD:EE:FF"
+
+# BlueZ adapter, e.g. "hci1". Commented out = default adapter.
+# adapter = "hci0"
+
+shell = "/bin/bash"
+shell_args = ["-l"]
+term = "dumb"
+
+# Terminal size reported to the shell (Flipper screen: 21 columns x 7 rows).
+term_cols = 21
+term_rows = 7
+
+reconnect_delay_secs = 5
