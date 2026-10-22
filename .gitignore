@@ -1,0 +1,18 @@
+# python venv z ufbt
+.venv/
+
+# flipper-app (ufbt)
+flipper-app/dist/
+flipper-app/.ufbt/
+flipper-app/.vscode/compile_commands.json
+
+# pi-server (cargo)
+pi-server/target/
+
+# edytory / system
+.vscode/*.log
+.idea/
+.DS_Store
+
+# lokalny stan pracy z Claude Code
+CLAUDE.md
