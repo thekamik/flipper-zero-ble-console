@@ -18,7 +18,6 @@ Tested with the official Flipper firmware 1.5.1 (API 88.2) and a Debian server w
 - PiTerm runs its own BLE profile with a separate MAC address and bonding keys, so pairing with the Flipper mobile app is not affected.
 - Connection status on the Flipper: waiting to pair, paired, connected, session active.
 - The server works without configuration (it picks the paired PiTerm device), reconnects automatically and starts a new shell after `exit`.
-- systemd service and install script for the server.
 
 ## How it works
 
@@ -43,7 +42,7 @@ The data is a raw byte stream without framing. The full specification, including
 ## Quick start
 
 1. Build the Flipper app and install it on the Flipper ([Flipper app](#flipper-app)).
-2. Build the server and install it on the Linux machine ([Server](#server)).
+2. Build the server and copy the binary to the Linux machine ([Server](#server)).
 3. Start PiTerm on the Flipper and pair it with the Linux machine ([Pairing](#pairing)).
 4. Start the server ([Running](#running)). The Flipper switches to the terminal and shows the shell prompt.
 
@@ -136,26 +135,20 @@ cross build --release --target arm-unknown-linux-gnueabihf    # Raspberry Pi Zer
 # -> target/<target>/release/piterm-server
 ```
 
-### Installing as a service
+### Copying to the target machine
 
-Copy the binary and the files from `pi-server/dist/` into one directory on the target machine and run the installer:
+The server is a single binary with no installation step. Copy it to the machine and make it executable:
 
 ```bash
-scp target/aarch64-unknown-linux-gnu/release/piterm-server dist/* pi@raspberrypi.local:~/piterm/
-ssh pi@raspberrypi.local
-cd ~/piterm
-sudo ./install.sh pi     # the user whose shell is exposed on the Flipper (not root)
+scp target/aarch64-unknown-linux-gnu/release/piterm-server pi@raspberrypi.local:~/
+ssh pi@raspberrypi.local chmod +x piterm-server
 ```
 
-`install.sh` does the following:
-- installs the binary to `/usr/local/bin/piterm-server`,
-- creates `/etc/piterm/config.toml` if it doesn't exist,
-- installs `/etc/systemd/system/piterm.service` running as the given user,
-- adds that user to the `bluetooth` group (access to BlueZ over D-Bus).
+Run it as a regular user, not root. The shell on the Flipper belongs to that user. The user needs access to BlueZ over D-Bus; on Debian and Raspberry Pi OS this is granted by the `bluetooth` group (`sudo usermod -aG bluetooth $USER`, then log in again).
 
 ### Configuration
 
-The configuration file is optional. Without it, the server uses the defaults below. The default path is `/etc/piterm/config.toml`; an example is in [`pi-server/dist/config.toml`](pi-server/dist/config.toml).
+The configuration file is optional. Without it, the server uses the defaults below. Pass a file with `--config <file>` (the default path is `/etc/piterm/config.toml`). An example with comments is in [`pi-server/config.example.toml`](pi-server/config.example.toml).
 
 | Key | Default | Description |
 |---|---|---|
@@ -192,7 +185,7 @@ Alternatively, the server can pair and store the address in its configuration:
 
 ```bash
 piterm-server scan                                   # find the PiTerm MAC
-sudo piterm-server pair 80:E1:27:F2:36:CE --save --config /etc/piterm/config.toml
+piterm-server pair 80:E1:27:F2:36:CE --save --config ~/piterm.toml
 ```
 
 To remove a pairing (e.g. when switching Flippers or after encryption errors), remove it on both sides:
@@ -203,21 +196,43 @@ The Flipper stores the PiTerm bonding keys separately (`apps_data/piterm/.bt_ter
 
 ## Running
 
-As a systemd service:
+In the foreground, with logs in the console (stop with Ctrl+C):
 
 ```bash
-sudo systemctl enable --now piterm
-journalctl -u piterm -f
+./piterm-server                          # same as `./piterm-server run`
+RUST_LOG=debug ./piterm-server           # verbose logs (flow control window, MTU)
+./piterm-server --config ~/piterm.toml   # with a configuration file
 ```
 
-Manually, e.g. on a laptop:
+In the background, with logs in a file, so it keeps running after you log out:
 
 ```bash
-cd pi-server
-cargo run --release                                   # same as `piterm-server run`
-RUST_LOG=debug cargo run --release                    # verbose logs (flow control window, MTU)
-cargo run --release -- --config dist/config.toml run  # with a configuration file
+nohup ./piterm-server > piterm.log 2>&1 &
+tail -f piterm.log                       # follow the logs
+pkill piterm-server                      # stop
 ```
+
+During development you can run it straight from the source tree with `cargo run --release` in `pi-server/`.
+
+To start the server automatically at boot, you can create a systemd unit yourself, for example `/etc/systemd/system/piterm.service` (adjust the path and the user):
+
+```ini
+[Unit]
+Description=PiTerm BLE terminal server
+After=bluetooth.service
+Requires=bluetooth.service
+
+[Service]
+ExecStart=/home/pi/piterm-server
+User=pi
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then run `sudo systemctl daemon-reload && sudo systemctl enable --now piterm`; logs are in `journalctl -u piterm -f`.
 
 A session works as follows:
 - Start PiTerm on the Flipper. The server connects within a few seconds, and the Flipper switches to the terminal screen with the shell prompt.
@@ -309,7 +324,7 @@ Anyone who pairs with PiTerm gets a shell on the server.
 | the app shows "API mismatch" or doesn't start | the `.fap` was built with a different SDK: `ufbt update` for your firmware and rebuild |
 | server: "no paired PiTerm device" or "is not paired" | see [Pairing](#pairing); pair `PiTerm …`, not the regular `Flipper …` device |
 | server: "… not found within 10s" | PiTerm isn't running on the Flipper, or the Flipper is out of range; the server retries |
-| server: D-Bus "not authorized" | the service user must be in the `bluetooth` group (see `/etc/dbus-1/system.d/bluetooth.conf`) |
+| server: D-Bus "not authorized" | the user running the server must be in the `bluetooth` group (see `/etc/dbus-1/system.d/bluetooth.conf`) |
 | pairing fails or encryption errors after re-pairing | remove the pairing on both sides and pair again |
 
 ## Development
@@ -333,7 +348,7 @@ Anyone who pairs with PiTerm gets a shell on the server.
 │   └── tests/                # host tests
 ├── pi-server/                # server (Rust, bluer + tokio)
 │   ├── src/                  # ble, session, flow, shell, config, protocol
-│   └── dist/                 # config.toml, piterm.service, install.sh
+│   └── config.example.toml   # example configuration
 └── .github/workflows/ci.yml
 ```
 

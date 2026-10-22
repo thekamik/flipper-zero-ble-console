@@ -88,7 +88,7 @@ mod tests {
 
     #[test]
     fn parses_example_config() {
-        let cfg: Config = toml::from_str(include_str!("../dist/config.toml")).unwrap();
+        let cfg: Config = toml::from_str(include_str!("../config.example.toml")).unwrap();
         assert_eq!(cfg.shell, "/bin/bash");
         assert_eq!(cfg.flipper_addr().unwrap(), None);
     }

@@ -4,7 +4,7 @@ Design notes for `pi-server/`. For building and usage see the [README](../README
 
 ## Goal
 
-A daemon that connects to the Flipper over Bluetooth LE, runs a shell in a pseudo-terminal and relays bytes in both directions. It ships as a single binary with no runtime dependencies beyond BlueZ, which Raspberry Pi OS and most Linux distributions already include.
+A daemon that connects to the Flipper over Bluetooth LE, runs a shell in a pseudo-terminal and relays bytes in both directions. It ships as a single binary with no runtime dependencies beyond BlueZ, which Raspberry Pi OS and most Linux distributions already include. There is no installer: the user copies the binary and runs it.
 
 Nothing in the server is specific to the Raspberry Pi. It runs on any Linux machine with BlueZ and a BLE adapter.
 
@@ -38,16 +38,13 @@ pi-server/
 ├── Cross.toml          # cross-compilation images with libdbus-1-dev
 ├── src/
 │   ├── main.rs         # CLI, configuration, daemon loop (resolve → session → wait)
-│   ├── config.rs       # optional /etc/piterm/config.toml
+│   ├── config.rs       # optional configuration file (--config)
 │   ├── protocol.rs     # UUIDs and constants from docs/PROTOCOL.md
 │   ├── ble.rs          # adapter, discovery, characteristics, RX writer, scan/inspect/pair
 │   ├── flow.rs         # send window (tokio watch channel)
 │   ├── shell.rs        # shell in a pty
 │   └── session.rs      # one connection: relay loop and shell restarts
-└── dist/
-    ├── config.toml     # example configuration
-    ├── piterm.service  # systemd unit
-    └── install.sh      # installer
+└── config.example.toml # example configuration (optional at runtime)
 ```
 
 ## Daemon loop
@@ -109,10 +106,10 @@ The daemon itself never pairs. Unpaired devices are rejected, so pairing is alwa
 ## Deployment
 
 - **Build** natively with `cargo build --release`, or cross-compile with `cross`. `bluer` links against `libdbus-1`, so `Cross.toml` installs `libdbus-1-dev` for the target architecture (`aarch64`, `armv7` and `arm` are configured).
-- **Install** with `dist/install.sh`. It installs the binary to `/usr/local/bin`, creates `/etc/piterm/config.toml` if missing, installs the systemd unit for the given user and adds that user to the `bluetooth` group, which grants access to BlueZ over D-Bus on Raspberry Pi OS and Debian.
-- The unit starts after `bluetooth.service` and restarts on failure.
+- **Run** the binary directly: in the foreground with logs on the console, or in the background (`nohup`, `&`). The configuration file is optional, so nothing has to be installed. The user only needs access to BlueZ over D-Bus, which the `bluetooth` group grants on Raspberry Pi OS and Debian.
+- **Autostart** is left to the user. The README shows an example systemd unit, but the project doesn't ship an installer: Linux setups differ too much (init system, users, paths, D-Bus policies) for one script to work reliably everywhere.
 
-Copying the binary onto the Pi from the Flipper itself (Mass Storage app with the files on the SD card, plus a Bad USB script that mounts the drive and runs `install.sh`) was considered. It is not part of the project: the binary is several megabytes, and the keyboard layout used by Bad USB often doesn't match the Pi's.
+An install script with a bundled systemd unit was part of an earlier version and was removed for the same reason. Copying the binary onto the Pi from the Flipper itself (Mass Storage app plus a Bad USB script) was also considered and dropped: the binary is several megabytes, and the keyboard layout used by Bad USB often doesn't match the Pi's.
 
 ## Security
 
@@ -127,5 +124,6 @@ Copying the binary onto the Pi from the Flipper itself (Mass Storage app with th
 | `bluer` API for notifications, `write_io` and the MTU | `notify()` for TX and FLOW; `write_io()` returns a writer with `mtu()` (already reduced by BlueZ overhead) |
 | Do indications from TX work through `notify()`? | yes, BlueZ handles indications and notifications the same way and confirms indications itself |
 | D-Bus permissions for a non-root user | membership in the `bluetooth` group is enough on Debian and Raspberry Pi OS |
+| Ship an installer and a systemd unit? | no: the binary is copied and run by hand; a systemd unit is only an example in the README |
 | Keep the shell across disconnects (like `tmux`)? | no: the shell is closed on disconnect and a new one starts on the next connection |
 | Require `flipper_addr`? | no: without it the server uses the only paired `PiTerm …` device, so pairing with system tools is enough |

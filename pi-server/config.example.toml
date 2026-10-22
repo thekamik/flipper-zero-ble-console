@@ -1,4 +1,6 @@
-# PiTerm configuration (/etc/piterm/config.toml)
+# PiTerm configuration example. The file is optional; without it the defaults
+# below are used. Pass it with `piterm-server --config <file>`
+# (default path: /etc/piterm/config.toml).
 
 # MAC of the Flipper in the PiTerm profile (shown by `piterm-server scan`).
 # The server connects only to this address. Commented out = the only device
