@@ -38,7 +38,7 @@ The Flipper firmware does not let apps act as a BLE central, so the roles are re
 3. Keys typed on the Flipper are sent as indications on TX and written to the shell's pty.
 4. Shell output is written to RX in chunks no larger than the MTU and the Flipper's free buffer space. The Flipper advertises its free space on FLOW.
 
-The data is a raw byte stream without framing. The full specification is in [`docs/PROTOCOL.md`](docs/PROTOCOL.md) (in Polish).
+The data is a raw byte stream without framing. The full specification, including flow control and the session lifecycle, is in [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
 
 ## Quick start
 
@@ -317,7 +317,7 @@ Anyone who pairs with PiTerm gets a shell on the server.
 ### Repository layout
 
 ```
-├── docs/PROTOCOL.md          # BLE protocol specification (in Polish)
+├── docs/PROTOCOL.md          # BLE protocol specification
 ├── flipper-app/              # Flipper app (C, ufbt)
 │   ├── application.fam       # app manifest
 │   ├── piterm.c/.h           # app, worker thread, settings
