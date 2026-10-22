@@ -317,7 +317,10 @@ Anyone who pairs with PiTerm gets a shell on the server.
 ### Repository layout
 
 ```
-├── docs/PROTOCOL.md          # BLE protocol specification
+├── docs/
+│   ├── PROTOCOL.md           # BLE protocol specification
+│   ├── CLIENT_CONCEPT.md     # Flipper app design notes
+│   └── SERVER_CONCEPT.md     # server design notes
 ├── flipper-app/              # Flipper app (C, ufbt)
 │   ├── application.fam       # app manifest
 │   ├── piterm.c/.h           # app, worker thread, settings
@@ -334,7 +337,7 @@ Anyone who pairs with PiTerm gets a shell on the server.
 └── .github/workflows/ci.yml
 ```
 
-`CONCEPT.md` in each project describes the original design (in Polish).
+Design notes and the reasoning behind them: [`docs/CLIENT_CONCEPT.md`](docs/CLIENT_CONCEPT.md) and [`docs/SERVER_CONCEPT.md`](docs/SERVER_CONCEPT.md).
 
 ### Tests
 
